@@ -1,0 +1,8 @@
+﻿cl : Command line warning D9002: ignoring unknown option '/SAFESEH:NO'
+  T41MANDW.cpp
+  Generating code
+  2 of 10 functions (20.0%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  Mandw.vcxproj -> C:\Users\Grigorii\Desktop\Будущее портфолио и книги\Портфолио\Mandw\Release\Mandw.exe

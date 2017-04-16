@@ -1,0 +1,13 @@
+﻿  T41MANDW.cpp
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutFullScreen"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutInit"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutPostRedisplay"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutKeyboardFunc"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutCreateWindow"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutInitDisplayMode"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutDisplayFunc"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutMainLoop"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutInitWindowPosition"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutInitWindowSize"
+T41MANDW.obj : error LNK2001: неразрешенный внешний символ "glutSwapBuffers"
+C:\Users\Grigorii\Desktop\Будущее портфолио и книги\Портфолио\Mandw\x64\Release\Mandw.exe : fatal error LNK1120: неразрешенных внешних элементов: 11
