@@ -1,0 +1,240 @@
+# 3ds Max Wavefront OBJ Exporter v0.94b - (c)2007 guruware
+# File Created: 11.06.2008 18:58:35
+
+newmtl roof_02_box_03
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\R02_03.png
+	map_Kd D:\upload\Converted\Max_building_01\R02_03.png
+	map_bump D:\upload\Converted\Max_building_01\R02_03.png
+	bump D:\upload\Converted\Max_building_01\R02_03.png
+
+newmtl roof_box_01
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\R02_02.png
+	map_Kd D:\upload\Converted\Max_building_01\R02_02.png
+	map_bump D:\upload\Converted\Max_building_01\R02_02.png
+	bump D:\upload\Converted\Max_building_01\R02_02.png
+
+newmtl balcony_02_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B02_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B02_CON.png
+
+newmtl balcony_04_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B04_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B04_CON.png
+
+newmtl balcony_03_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B03_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B03_CON.png
+
+newmtl door
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\DOOR.png
+	map_Kd D:\upload\Converted\Max_building_01\DOOR.png
+
+newmtl balcony_05_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B04_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B04_CON.png
+
+newmtl balcony_01
+	Ns 85.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.5490 0.5490 0.5490
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B01.png
+	map_Kd D:\upload\Converted\Max_building_01\B01.png
+
+newmtl balcony_01_b
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B01_B.png
+	map_Kd D:\upload\Converted\Max_building_01\B01_B.png
+
+newmtl balcony_01_c
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B01_C.png
+	map_Kd D:\upload\Converted\Max_building_01\B01_C.png
+
+newmtl balcony_02_b_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B02B_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B02B_CON.png
+
+newmtl balcony_02_c_concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\B02C_CON.png
+	map_Kd D:\upload\Converted\Max_building_01\B02C_CON.png
+
+newmtl Material__25
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+
+newmtl ground
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\ground.png
+	map_Kd D:\upload\Converted\Max_building_01\ground.png
+
+newmtl wire_000000000
+	Ns 32
+	d 1
+	Tr 1
+	Tf 1 1 1
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.0000 0.0000 0.0000
+	Ks 0.3500 0.3500 0.3500
+
+newmtl roof_01
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\R01.png
+	map_Kd D:\upload\Converted\Max_building_01\R01.png
+	map_bump D:\upload\Converted\Max_building_01\R01.png
+	bump D:\upload\Converted\Max_building_01\R01.png
+
+newmtl window
+	Ns 81.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 1.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.0000 0.0000 0.0000
+	Kd 0.5880 0.5880 0.5880
+	Ks 1.0710 1.0710 1.0710
+	Ke 0.0000 0.0000 0.0000
+	map_Ka D:\upload\Converted\Max_building_01\WIN.png
+	map_Kd D:\upload\Converted\Max_building_01\WIN.png

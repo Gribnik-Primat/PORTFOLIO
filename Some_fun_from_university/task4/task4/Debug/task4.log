@@ -1,0 +1,18 @@
+﻿Сборка начата 17.02.2016 12:49:54.
+     1>Проект "F:\Projects(politex)(3)\task4\task4\task4.vcxproj" в узле 2 (целевые объекты Build).
+     1>ClCompile:
+         F:\Visual\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt task4.cpp
+         task4.cpp
+     1>f:\projects(politex)(3)\task4\task4\task4.cpp(106): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 f:\visual\vc\include\stdio.h(211): см. объявление "fopen"
+     1>f:\projects(politex)(3)\task4\task4\task4.cpp(103): warning C4101: y: неиспользованная локальная переменная
+     1>f:\projects(politex)(3)\task4\task4\task4.cpp(103): warning C4101: x: неиспользованная локальная переменная
+     1>f:\projects(politex)(3)\task4\task4\task4.cpp(103): warning C4101: k: неиспользованная локальная переменная
+       Link:
+         F:\Visual\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\Projects(politex)(3)\task4\Debug\task4.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:\Projects(politex)(3)\task4\Debug\task4.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\Projects(politex)(3)\task4\Debug\task4.lib" /MACHINE:X86 Debug\task4.obj
+         task4.vcxproj -> F:\Projects(politex)(3)\task4\Debug\task4.exe
+     1>Сборка проекта "F:\Projects(politex)(3)\task4\task4\task4.vcxproj" завершена (целевые объекты Build).
+
+Сборка успешно завершена.
+
+Затраченное время: 00:00:03.87

@@ -1,0 +1,15 @@
+graph G
+{
+a[color=yellow];
+b[color=blue];
+c[color=yellow];
+d[color=red];
+a -- b;
+a -- d;
+b -- a;
+b -- d;
+c -- d;
+d -- a;
+d -- b;
+d -- c;
+} 
