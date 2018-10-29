@@ -1,0 +1,5 @@
+﻿  compilation object save succeeded; see C:\Users\Grigorii\Desktop\4ый курс\C++\Debug\Tutorial03_PS.cso
+  compilation object save succeeded; see C:\Users\Grigorii\Desktop\4ый курс\C++\Debug\Tutorial03_VS.cso
+  Tutorial03.cpp
+Tutorial03.obj : warning LNK4075: не учитывается "/EDITANDCONTINUE" из-за спецификации "/SAFESEH"
+  Tutorial03_2012.vcxproj -> C:\Users\Grigorii\Desktop\4ый курс\C++\Debug\Tutorial03.exe
