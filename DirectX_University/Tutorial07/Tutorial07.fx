@@ -7,24 +7,21 @@
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables
 //--------------------------------------------------------------------------------------
-Texture2D txDiffuesed1 : register( t0 );
-Texture2D txDiffuesed2 : register( t1 );
+Texture2D txDiffuse1 : register( t0 );
+Texture2D txDiffuse2 : register( t1 );
 SamplerState samLinear : register( s0 );
 
-cbuffer cbNeverChanges : register( b0 )
-{
-    matrix View;
-};
-
-cbuffer cbChangeOnResize : register( b1 )
+cbuffer cbChangeOnResize : register( b0 )
 {
     matrix Projection;
 };
 
-cbuffer cbChangesEveryFrame : register( b2 )
+cbuffer cbChangesEveryFrame : register( b1 )
 {
+    matrix View;
     matrix World;
     float4 vMeshColor;
+	float4 cameraposition;
 };
 
 
@@ -62,5 +59,13 @@ PS_INPUT VS( VS_INPUT input )
 //--------------------------------------------------------------------------------------
 float4 PS( PS_INPUT input) : SV_Target
 {
-    return (txDiffuesed1.Sample(samLinear, input.Tex)*0.4 + txDiffuesed2.Sample(samLinear, input.Tex)) * 0.5f;
+	  float4 camposmax = float4 (0.0,15.0,2.0,1.0);
+	  float4 camposmin = float4 (0.0, 3.0, 2.0,1.0);
+	  float1 maxdist = distance(camposmax , input.Pos);
+	  float1 mindist = distance(camposmin, input.Pos);
+	  float1 dist = distance(cameraposition, input.Pos);
+	  float1 coeff = (maxdist - mindist) / dist;
+      return txDiffuse1.Sample(samLinear, input.Tex) * (1.0 - coeff) + txDiffuse2.Sample(samLinear, input.Tex) * (coeff);
 }
+
+

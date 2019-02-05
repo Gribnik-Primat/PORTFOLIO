@@ -36,6 +36,12 @@ struct ConstantBuffer
 	XMMATRIX mWorld;
 	XMMATRIX mView;
 	XMMATRIX mProjection;
+	XMFLOAT4 CameraPosition;
+
+	XMFLOAT4 vLightColor[2];
+	XMFLOAT4 vOutputColor;
+	XMFLOAT4 vLightRadius[2];
+	XMFLOAT4 vLightPos[2];
 };
 
 
@@ -57,6 +63,7 @@ ID3D11Texture2D*        g_pDepthStencil = nullptr;
 ID3D11DepthStencilView* g_pDepthStencilView = nullptr;
 ID3D11VertexShader*     g_pVertexShader = nullptr;
 ID3D11PixelShader*      g_pPixelShader = nullptr;
+ID3D11PixelShader*      g_pPixelShaderSolid = nullptr;
 ID3D11InputLayout*      g_pVertexLayout = nullptr;
 ID3D11Buffer*           g_pVertexBuffer = nullptr;
 ID3D11Buffer*           g_pIndexBuffer = nullptr;
@@ -65,6 +72,30 @@ XMMATRIX                g_World1;
 XMMATRIX                g_World2;
 XMMATRIX                g_View;
 XMMATRIX                g_Projection;
+
+bool                    pause = false;
+
+
+float                   camZoom;
+float                   camAzimuthAngle;
+float                   camZenithAngle;
+
+XMVECTOR                camUp;
+XMVECTOR                camAt;
+
+
+// torus params
+// for the sphere must be even
+const int               TORUS_N = 10;
+const int               TUBE_N = 10;
+
+const int               TORUS_V_N = TORUS_N * TUBE_N;
+
+const float             TORUS_R = 2.0f;
+const float             TUBE_R = 0.5f;
+
+
+#define MOD(a, b)       ((a) % (b))
 
 
 //--------------------------------------------------------------------------------------
@@ -399,6 +430,7 @@ HRESULT InitDevice()
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT numElements = ARRAYSIZE( layout );
 
@@ -424,63 +456,125 @@ HRESULT InitDevice()
 
 	// Create the pixel shader
 	hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader );
+	
 	pPSBlob->Release();
     if( FAILED( hr ) )
         return hr;
+	pPSBlob = nullptr;
+	hr = CompileShaderFromFile(L"Tutorial05.fx", "PSSolid", "ps_4_0", &pPSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(nullptr,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
 
-    // Create vertex buffer
-    SimpleVertex vertices[] =
-    {
-        { XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT4( 0.0f, 0.0f, 1.0f, 1.0f ) },
-        { XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT4( 0.0f, 1.0f, 0.0f, 1.0f ) },
-        { XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT4( 0.0f, 1.0f, 1.0f, 1.0f ) },
-        { XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT4( 1.0f, 0.0f, 0.0f, 1.0f ) },
-        { XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT4( 1.0f, 0.0f, 1.0f, 1.0f ) },
-        { XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT4( 1.0f, 1.0f, 0.0f, 1.0f ) },
-        { XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT4( 1.0f, 1.0f, 1.0f, 1.0f ) },
-        { XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT4( 0.0f, 0.0f, 0.0f, 1.0f ) },
-    };
-    D3D11_BUFFER_DESC bd;
+	// Create the pixel shader
+	hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShaderSolid);
+	pPSBlob->Release();
+	if (FAILED(hr))
+		return hr;
+
+
+	SimpleVertex sphere[TORUS_V_N];
+    for (int j = 0; j < TORUS_N; j++) {
+        for (int i = 0; i < TUBE_N; i++) {
+            SimpleVertex v;
+            v.Pos = XMFLOAT3(cos(XM_2PI * j / TORUS_N) * (TORUS_R + TUBE_R * cos(XM_2PI * i / TUBE_N)),
+                             sin(XM_2PI * j / TORUS_N) * (TORUS_R + TUBE_R * cos(XM_2PI * i / TUBE_N)),
+                             sin(XM_2PI * i / TUBE_N) * TUBE_R);
+    
+            v.Color = XMFLOAT4((float)rand() / RAND_MAX,
+                               (float)rand() / RAND_MAX,
+                               (float)rand() / RAND_MAX, 1);
+    
+            sphere[j * TUBE_N + i] = v;
+        }
+    }
+    /*for (int j = 0; j < TORUS_N; j++) {
+       for (int i = 0; i < TUBE_N; i++) {
+          SimpleVertex v;
+		  v.Pos = XMFLOAT3(
+			 (float)(TORUS_R * sin(XM_2PI * i / TUBE_N)) * sin(XM_2PI * j / TORUS_N), //y
+			 (float)(TORUS_R /** cos(XM_2PI * i / TUBE_N)),//z
+		     (float)(TORUS_R * cos(XM_2PI * i / TUBE_N)) * cos(XM_2PI * j / TORUS_N));//x
+
+          v.Color = XMFLOAT4((float)rand() / RAND_MAX,
+             (float)rand() / RAND_MAX,
+             (float)rand() / RAND_MAX, 1);
+
+          vertices[j * TUBE_N + i] = v;
+       }
+    }*/
+	// Create vertex buffer
+	SimpleVertex cylinder[100];
+	for (DWORD i = 0; i < 50; i++)
+	{
+		SimpleVertex v;
+		FLOAT theta = (XM_2PI*i) / (50 - 1);
+		v.Pos = XMFLOAT3(sinf(theta), -1.0f, cosf(theta));
+		v.Color = XMFLOAT4((float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX, 1);
+		cylinder[2*i] = v;
+		SimpleVertex z;
+		z.Pos = XMFLOAT3(sinf(theta), 1.0f, cosf(theta));
+		z.Color = XMFLOAT4((float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX, 1);
+		cylinder[2*i + 1] = z;
+	}
+		
+
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(SimpleVertex) * TORUS_V_N;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = sphere;
+	hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
+	if (FAILED(hr))
+		return hr;
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	g_pImmediateContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+
 	ZeroMemory( &bd, sizeof(bd) );
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( SimpleVertex ) * 8;
+    bd.ByteWidth = sizeof( SimpleVertex ) * 100;
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
-    D3D11_SUBRESOURCE_DATA InitData;
-	ZeroMemory( &InitData, sizeof(InitData) );
-    InitData.pSysMem = vertices;
+    ZeroMemory( &InitData, sizeof(InitData) );
+    InitData.pSysMem = cylinder;
     hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &g_pVertexBuffer );
     if( FAILED( hr ) )
         return hr;
 
     // Set vertex buffer
-    UINT stride = sizeof( SimpleVertex );
-    UINT offset = 0;
-    g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
+    stride = sizeof( SimpleVertex );
+    offset = 0;
+    g_pImmediateContext->IASetVertexBuffers( 0, 2, &g_pVertexBuffer, &stride, &offset );
 
     // Create index buffer
-    WORD indices[] =
-    {
-        3,1,0,
-        2,1,3,
 
-        0,5,4,
-        1,5,0,
+    WORD indices[TORUS_V_N * 6];
+    for (WORD j = 0; j < TORUS_N; j++) {
+       for (WORD i = 0; i < TUBE_N; i++) {
+          indices[6 * (TUBE_N * j + i) + 0] = TUBE_N * j + i;
+          indices[6 * (TUBE_N * j + i) + 1] = TUBE_N * MOD(j + 1, TORUS_N) + MOD(i + 1, TUBE_N);
+          indices[6 * (TUBE_N * j + i) + 2] = TUBE_N * j + MOD(i + 1, TUBE_N);
 
-        3,4,7,
-        0,4,3,
+          indices[6 * (TUBE_N * j + i) + 3] = TUBE_N * j + i;
+          indices[6 * (TUBE_N * j + i) + 4] = TUBE_N * MOD(j + 1, TORUS_N) + i;
+          indices[6 * (TUBE_N * j + i) + 5] = TUBE_N * MOD(j + 1, TORUS_N) + MOD(i + 1, TUBE_N);
+       }
+    }
 
-        1,6,5,
-        2,6,1,
-
-        2,7,6,
-        3,7,2,
-
-        6,4,5,
-        7,4,6,
-    };
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( WORD ) * 36;        // 36 vertices needed for 12 triangles in a triangle list
+    bd.ByteWidth = sizeof( WORD ) * TORUS_V_N * 6;
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
     InitData.pSysMem = indices;
@@ -507,16 +601,28 @@ HRESULT InitDevice()
 	g_World1 = XMMatrixIdentity();
 	g_World2 = XMMatrixIdentity();
 
-    // Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet( 0.0f, 1.0f, -5.0f, 0.0f );
-	XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-	XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-	g_View = XMMatrixLookAtLH( Eye, At, Up );
+   // Initialize the camera
+   camZoom           = 5.099f;            // sqrt(26)
+   camAzimuthAngle   = XM_PI / 2;
+   camZenithAngle    = 0.197395;          // arctg(1 / 5)
+
+   camUp             = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+   camAt             = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Initialize the projection matrix
 	g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f );
 
     return S_OK;
+}
+
+
+XMVECTOR camGetPos ()
+{
+   return XMVectorSet(
+	   (float)(camZoom * cos(camZenithAngle) * cos(camAzimuthAngle)),
+	   (float)(camZoom * sin(camZenithAngle)),
+	(float)(camZoom * cos(camZenithAngle) * sin(camAzimuthAngle)),
+      0.0f);
 }
 
 
@@ -545,6 +651,44 @@ void CleanupDevice()
 }
 
 
+static bool IsRButtonPressed (void)
+{
+   return (GetKeyState(VK_RBUTTON) >> 7) && 1 == 1;
+}
+
+
+static void ValidateCam(void)
+{
+   if (camZenithAngle > XM_PIDIV2) {
+      camZenithAngle = XM_PI - camZenithAngle;
+
+      if (camAzimuthAngle >= XM_PI) {
+         camAzimuthAngle -= XM_PI;
+      } else {
+         camAzimuthAngle += XM_PI;
+      }
+
+      camUp.m128_f32[1] *= -1;
+   } else if (camZenithAngle < -XM_PIDIV2) {
+      camZenithAngle = -XM_PI - camZenithAngle;
+
+      if (camAzimuthAngle >= XM_PI) {
+         camAzimuthAngle -= XM_PI;
+      } else {
+         camAzimuthAngle += XM_PI;
+      }
+
+      camUp.m128_f32[1] *= -1;
+   }
+
+   if (camAzimuthAngle > XM_2PI) {
+      camAzimuthAngle -= XM_2PI;
+   } else if (camAzimuthAngle < 0) {
+      camAzimuthAngle += XM_2PI;
+   }
+}
+
+
 //--------------------------------------------------------------------------------------
 // Called every time the application receives a message
 //--------------------------------------------------------------------------------------
@@ -552,9 +696,16 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 {
     PAINTSTRUCT ps;
     HDC hdc;
+    static int prevX, prevY;
 
     switch( message )
     {
+    case WM_CREATE:
+       {
+          prevX = -1;
+          prevY = -1;
+       }
+       break;
     case WM_PAINT:
         hdc = BeginPaint( hWnd, &ps );
         EndPaint( hWnd, &ps );
@@ -564,9 +715,46 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
         PostQuitMessage( 0 );
         break;
 
-        // Note that this tutorial does not handle resizing (WM_SIZE) requests,
-        // so we created the window without the resize border.
+    case WM_KEYDOWN:
+       {
+          if (wParam == 'P')
+             pause = !pause;
+       }
+       break;
+    case WM_MOUSEMOVE:
+       {
+          if (!IsRButtonPressed()) {
+             prevX = -1;
+             prevY = -1;
+             break;
+          }
 
+          int xPos = LOWORD(lParam);
+          int yPos = HIWORD(lParam);
+
+          if (prevX == -1 || prevY == -1) {
+             prevX = xPos;
+             prevY = yPos;
+             break;
+          }
+
+          int dX = xPos - prevX;
+          int dY = yPos - prevY;
+          prevX = xPos;
+          prevY = yPos;
+
+          camAzimuthAngle += dX / 100.f;
+          camZenithAngle += dY / 100.f * (camUp.m128_f32[1] < 0 ? -1 : 1);
+
+          ValidateCam();
+       }
+       break;
+    case WM_MOUSEWHEEL:
+       {
+          int dZ = GET_WHEEL_DELTA_WPARAM(wParam);
+          camZoom += dZ / 500.f;
+       }
+       break;
     default:
         return DefWindowProc( hWnd, message, wParam, lParam );
     }
@@ -581,19 +769,48 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 void Render()
 {
     // Update our time
-    static float t = 0.0f;
-    if( g_driverType == D3D_DRIVER_TYPE_REFERENCE )
-    {
-        t += ( float )XM_PI * 0.0125f;
-    }
-    else
-    {
-        static ULONGLONG timeStart = 0;
-        ULONGLONG timeCur = GetTickCount64();
-        if( timeStart == 0 )
-            timeStart = timeCur;
-        t = ( timeCur - timeStart ) / 1000.0f;
-    }
+   static float t = 0.0f;
+   if( g_driverType == D3D_DRIVER_TYPE_REFERENCE )
+   {
+      if (!pause) {
+         t += ( float )XM_PI * 0.0125f;
+      }
+   }
+   else
+   {
+      static ULONGLONG timeStart = 0;
+      ULONGLONG timeCur = GetTickCount64();
+      if( timeStart == 0 )
+         timeStart = timeCur;
+      if (!pause) {
+         t += (timeCur - timeStart) / 1000.0f;
+      }
+
+      timeStart = timeCur;
+   }
+
+
+   XMFLOAT4 vLightPos[2] =
+   {
+	   //XMFLOAT4(-0.577f, 0.577f, -0.577f, 1.0f),
+	   XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
+	   XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f),
+   };
+
+   XMFLOAT4 vRadius[2] =
+   {
+	   XMFLOAT4(5.0f, 0.0f, 0.0f, 1.0f),
+	   XMFLOAT4(4.0f, 0.0f, 0.0f, 1.0f)
+   };
+
+   XMFLOAT4 vLightColors[2] =
+   {
+	   XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f),
+	   XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f)
+   };
+   
+    XMVECTOR camPos = camGetPos();
+    g_View = XMMatrixLookAtLH(camPos, camAt, camUp);
 
     // 1st Cube: Rotate around the origin
 	g_World1 = XMMatrixRotationY( t );
@@ -605,6 +822,15 @@ void Render()
 	XMMATRIX mScale = XMMatrixScaling( 0.3f, 0.3f, 0.3f );
 
 	g_World2 = mScale * mSpin * mTranslate * mOrbit;
+
+
+	XMVECTOR vLightDir = XMLoadFloat4(&vLightPos[1]);
+	vLightDir = XMVector3Transform(vLightDir, mOrbit);
+	XMStoreFloat4(&vLightPos[1], vLightDir);
+
+	vLightPos[1].x = XMVectorGetX(vLightDir);
+	vLightPos[1].y = XMVectorGetY(vLightDir);
+
 
     //
     // Clear the back buffer
@@ -622,8 +848,26 @@ void Render()
     ConstantBuffer cb1;
 	cb1.mWorld = XMMatrixTranspose( g_World1 );
 	cb1.mView = XMMatrixTranspose( g_View );
-	cb1.mProjection = XMMatrixTranspose( g_Projection );
-	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, nullptr, &cb1, 0, 0 );
+	cb1.mProjection = XMMatrixTranspose(g_Projection);
+
+	cb1.vLightColor[0] = vLightColors[0];
+	cb1.vLightColor[1] = vLightColors[1];
+	cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
+
+	cb1.vLightPos[0].x = 5 * vLightPos[0].x;
+	cb1.vLightPos[0].y = 5 * vLightPos[0].y;
+	cb1.vLightPos[0].z = 5 * vLightPos[0].z;
+
+	cb1.vLightPos[1].x = 5 * vLightPos[1].x;
+	cb1.vLightPos[1].y = 5 * vLightPos[1].y;
+	cb1.vLightPos[1].z = 5 * vLightPos[1].z;
+
+
+	cb1.vLightRadius[0] = vRadius[0];
+	cb1.vLightRadius[1] = vRadius[1];
+	cb1.CameraPosition = XMFLOAT4(camPos.m128_f32[0], camPos.m128_f32[1], camPos.m128_f32[2], camPos.m128_f32[3]);
+
+	g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
     //
     // Render the first cube
@@ -631,7 +875,7 @@ void Render()
 	g_pImmediateContext->VSSetShader( g_pVertexShader, nullptr, 0 );
 	g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
 	g_pImmediateContext->PSSetShader( g_pPixelShader, nullptr, 0 );
-	g_pImmediateContext->DrawIndexed( 36, 0, 0 );
+	g_pImmediateContext->DrawIndexed( TORUS_V_N * 6, 0, 0 );
 
     //
     // Update variables for the second cube
@@ -645,8 +889,23 @@ void Render()
     //
     // Render the second cube
     //
-	g_pImmediateContext->DrawIndexed( 36, 0, 0 );
+	g_pImmediateContext->DrawIndexed( TORUS_V_N * 6, 0, 0 );
 
+	for (int m = 0; m < 2; m++)
+	{
+		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&vLightPos[m]));
+		XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
+		//XMMATRIX mLightScale = XMMatrixScaling( 0.2f, 1.f, 1.0f );
+		mLight = mLightScale * mLight;
+
+		// Update the world variable to reflect the current light
+		cb1.mWorld = XMMatrixTranspose(mLight);
+		cb1.vOutputColor = vLightColors[m];
+		g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+
+		g_pImmediateContext->PSSetShader(g_pPixelShaderSolid, nullptr, 0);
+		g_pImmediateContext->DrawIndexed(36, 0, 0);
+	}
     //
     // Present our back buffer to our front buffer
     //

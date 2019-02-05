@@ -20,6 +20,9 @@
 #include "DDSTextureLoader.h"
 #include "resource.h"
 
+#define MAX_R 15.0f
+#define MIN_R 3.0f
+
 using namespace DirectX;
 
 //--------------------------------------------------------------------------------------
@@ -31,11 +34,6 @@ struct SimpleVertex
     XMFLOAT2 Tex;
 };
 
-struct CBNeverChanges
-{
-    XMMATRIX mView;
-};
-
 struct CBChangeOnResize
 {
     XMMATRIX mProjection;
@@ -43,8 +41,10 @@ struct CBChangeOnResize
 
 struct CBChangesEveryFrame
 {
+    XMMATRIX mView;
     XMMATRIX mWorld;
     XMFLOAT4 vMeshColor;
+	XMFLOAT4 cameraposition; 
 };
 
 
@@ -69,21 +69,24 @@ ID3D11PixelShader*                  g_pPixelShader = nullptr;
 ID3D11InputLayout*                  g_pVertexLayout = nullptr;
 ID3D11Buffer*                       g_pVertexBuffer = nullptr;
 ID3D11Buffer*                       g_pIndexBuffer = nullptr;
-ID3D11Buffer*                       g_pCBNeverChanges = nullptr;
 ID3D11Buffer*                       g_pCBChangeOnResize = nullptr;
 ID3D11Buffer*                       g_pCBChangesEveryFrame = nullptr;
-ID3D11ShaderResourceView*           g_pTextureRV1Tex = nullptr;
-ID3D11ShaderResourceView*           g_pTextureRV2Tex = nullptr;
+
+ID3D11ShaderResourceView*           g_pWallTexture = nullptr;
+ID3D11ShaderResourceView*           g_pBadWallTexture = nullptr;
+
 ID3D11SamplerState*                 g_pSamplerLinear = nullptr;
+ID3D11SamplerState*                 g_pSamplerPoint = nullptr;
+
 XMMATRIX                            g_World;
 XMMATRIX                            g_View;
 XMMATRIX                            g_Projection;
 XMFLOAT4                            g_vMeshColor( 0.7f, 0.7f, 0.7f, 1.0f );
 
-D3D11_SAMPLER_DESC                  sampDesc;
-enum FILTRATIONTYPE { POINTY, LINEAR };
-FILTRATIONTYPE filtrationtype = LINEAR;
-float                               bias = 0.4f;
+XMVECTOR Eye, At, Up;
+float r = 7.0f;
+bool pauseNow = false;
+
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -124,7 +127,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         }
         else
         {
-			Render();
+            Render();
         }
     }
 
@@ -442,18 +445,16 @@ HRESULT InitDevice()
 
     // Create the pixel shader
     hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader );
-    
-	pPSBlob->Release();
     if( FAILED( hr ) )
         return hr;
 
     // Create vertex buffer
     SimpleVertex vertices[] =
     {
-        { XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT2( 1.0f, 0.0f ) },
-        { XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT2( 0.0f, 0.0f ) },
-        { XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT2( 1.0f, 0.0f ) },
 
         { XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT2( 0.0f, 0.0f ) },
         { XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT2( 1.0f, 0.0f ) },
@@ -539,13 +540,8 @@ HRESULT InitDevice()
 
     // Create the constant buffers
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(CBNeverChanges);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = g_pd3dDevice->CreateBuffer( &bd, nullptr, &g_pCBNeverChanges );
-    if( FAILED( hr ) )
-        return hr;
-    
     bd.ByteWidth = sizeof(CBChangeOnResize);
     hr = g_pd3dDevice->CreateBuffer( &bd, nullptr, &g_pCBChangeOnResize );
     if( FAILED( hr ) )
@@ -556,23 +552,23 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Load the Texture
-	hr = CreateDDSTextureFromFileEx(g_pd3dDevice, g_pImmediateContext, L"siding1.dds", 0, D3D11_USAGE_DEFAULT,
-		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, 0, D3D11_RESOURCE_MISC_GENERATE_MIPS,
-		false, nullptr, &g_pTextureRV1Tex);
-	if (FAILED(hr))
-		return hr;
-
-	hr = CreateDDSTextureFromFileEx(g_pd3dDevice, g_pImmediateContext, L"seafloor.dds", 0, D3D11_USAGE_DEFAULT,
-		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, 0, D3D11_RESOURCE_MISC_GENERATE_MIPS,
-		false, nullptr, &g_pTextureRV2Tex);
+    // Load the Textures
+    hr = CreateDDSTextureFromFileEx(g_pd3dDevice, g_pImmediateContext, L"wall.dds", 0, D3D11_USAGE_DEFAULT,
+      D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, 0, D3D11_RESOURCE_MISC_GENERATE_MIPS,
+      false, nullptr, &g_pWallTexture);
     if( FAILED( hr ) )
         return hr;
+    g_pImmediateContext->GenerateMips(g_pWallTexture);
 
-	g_pImmediateContext->GenerateMips(g_pTextureRV1Tex);
-	g_pImmediateContext->GenerateMips(g_pTextureRV2Tex);
+    hr = CreateDDSTextureFromFileEx(g_pd3dDevice, g_pImmediateContext, L"wall_bad.dds", 0, D3D11_USAGE_DEFAULT,
+      D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, 0, D3D11_RESOURCE_MISC_GENERATE_MIPS,
+      false, nullptr, &g_pBadWallTexture);
+    if (FAILED(hr))
+      return hr;
+    g_pImmediateContext->GenerateMips(g_pBadWallTexture);
 
-    // Create the sample state
+    // Create the sample states
+    D3D11_SAMPLER_DESC sampDesc;
     ZeroMemory( &sampDesc, sizeof(sampDesc) );
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -585,18 +581,16 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
+   
+
     // Initialize the world matrices
     g_World = XMMatrixIdentity();
 
     // Initialize the view matrix
-    XMVECTOR Eye = XMVectorSet( 0.0f, 3.0f, -6.0f, 0.0f );
-    XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-    XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
+    Eye = XMVectorSet( 0.0f, 2.0f, r, 0.0f );
+    At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
+    Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
     g_View = XMMatrixLookAtLH( Eye, At, Up );
-
-    CBNeverChanges cbNeverChanges;
-    cbNeverChanges.mView = XMMatrixTranspose( g_View );
-    g_pImmediateContext->UpdateSubresource( g_pCBNeverChanges, 0, nullptr, &cbNeverChanges, 0, 0 );
 
     // Initialize the projection matrix
     g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV4, width / (FLOAT)height, 0.01f, 100.0f );
@@ -616,10 +610,9 @@ void CleanupDevice()
 {
     if( g_pImmediateContext ) g_pImmediateContext->ClearState();
 
-    if( g_pSamplerLinear ) g_pSamplerLinear->Release();
-    if( g_pTextureRV1Tex ) g_pTextureRV1Tex->Release();
-	if (g_pTextureRV2Tex) g_pTextureRV2Tex->Release();
-    if( g_pCBNeverChanges ) g_pCBNeverChanges->Release();
+    if( g_pSamplerLinear ) g_pSamplerLinear->Release();\
+    if( g_pWallTexture ) g_pWallTexture->Release();
+    if( g_pBadWallTexture ) g_pBadWallTexture->Release();
     if( g_pCBChangeOnResize ) g_pCBChangeOnResize->Release();
     if( g_pCBChangesEveryFrame ) g_pCBChangesEveryFrame->Release();
     if( g_pVertexBuffer ) g_pVertexBuffer->Release();
@@ -638,6 +631,15 @@ void CleanupDevice()
     if( g_pd3dDevice ) g_pd3dDevice->Release();
 }
 
+void updateCamera() {
+  XMFLOAT4 eye;
+  XMStoreFloat4(&eye, Eye);
+  eye.x = 0.0f;
+  eye.z = r;
+  eye.y = 2.0f;
+  Eye = XMLoadFloat4(&eye);
+  g_View = XMMatrixLookAtLH(Eye, At, Up);
+}
 
 //--------------------------------------------------------------------------------------
 // Called every time the application receives a message
@@ -646,53 +648,43 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 {
     PAINTSTRUCT ps;
     HDC hdc;
+    int wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+    float wheelChangeRate = 0.3;
 
-	switch (message)
-	{
-	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
-		break;
+    switch( message )
+    {
+    case WM_PAINT:
+        hdc = BeginPaint( hWnd, &ps );
+        EndPaint( hWnd, &ps );
+        break;
 
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
+    case WM_DESTROY:
+        PostQuitMessage( 0 );
+        break;
 
-		// Note that this tutorial does not handle resizing (WM_SIZE) requests,
-		// so we created the window without the resize border.
-	case WM_KEYDOWN:
-		switch (wParam)
-		{
-		case 0x4D:;
-			if (filtrationtype == LINEAR)
-			{
-				sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-				filtrationtype = POINTY;
-			}
-			else
-			{
-				sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-				filtrationtype = LINEAR;
-			}
-			if (g_pSamplerLinear) g_pSamplerLinear->Release();
-			g_pd3dDevice->CreateSamplerState(&sampDesc, &g_pSamplerLinear);
-			break;
-		case 0x51:
-			bias = max(0.0f, (bias - 0.2f));
-			sampDesc.MipLODBias = bias;
-			if (g_pSamplerLinear) g_pSamplerLinear->Release();
-			g_pd3dDevice->CreateSamplerState(&sampDesc, &g_pSamplerLinear);
-			break;
-		case 0x57:
-			bias = min(D3D11_FLOAT32_MAX, (bias + 0.2f));
-			sampDesc.MipLODBias = bias;
-			if (g_pSamplerLinear) g_pSamplerLinear->Release();
-			g_pd3dDevice->CreateSamplerState(&sampDesc, &g_pSamplerLinear);
-			break;
-		}
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-	}
+    case WM_MOUSEWHEEL:
+      if (wheelDelta > 0 && r > MIN_R) {
+        r -= wheelChangeRate;
+      }
+      if (wheelDelta < 0 && r < MAX_R) {
+        r += wheelChangeRate;
+      }
+      updateCamera();
+      break;
+
+    case WM_KEYDOWN:
+      if (wParam == 80) {
+        pauseNow = !pauseNow;
+      }
+      break;
+
+        // Note that this tutorial does not handle resizing (WM_SIZE) requests,
+        // so we created the window without the resize border.
+
+    default:
+        return DefWindowProc( hWnd, message, wParam, lParam );
+    }
+
     return 0;
 }
 
@@ -702,32 +694,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 void Render()
 {
-	// Update our time
-	static float t = 0.0f;
-	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
-	{
-		t += (float)XM_PI * 0.0125f;
-	}
-	else
-	{
-		static ULONGLONG timeStart = 0;
-		ULONGLONG timeCur = GetTickCount64();
-		if (timeStart == 0)
-			timeStart = timeCur;
-		t = (timeCur - timeStart) / 1000.0f;
-	}
+    // Update our time
+    static float t = 0.0f;
+    
+    if (!pauseNow)
+      t += ( float )XM_PI * 0.000125f;
+   
 
-	// Rotate cube around the origin
-	g_World = XMMatrixRotationY(t);
+    // Rotate cube around the origin
+    g_World = XMMatrixRotationY( t );
 
-	// Modify the color
-	g_vMeshColor.x = 1;// (sinf(0 * 1.0f) + 1.0f) * 0.5f;
-	g_vMeshColor.y = 1; //(cosf(0 * 3.0f) + 1.0f) * 0.5f;
-	g_vMeshColor.z = 1; //(sinf(0 * 5.0f) + 1.0f) * 0.5f;
     //
     // Clear the back buffer
     //
-    g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::MidnightBlue );
+    g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::White );
 
     //
     // Clear the depth buffer to 1.0 (max depth)
@@ -739,21 +719,49 @@ void Render()
     //
     CBChangesEveryFrame cb;
     cb.mWorld = XMMatrixTranspose( g_World );
-    //cb.vMeshColor = g_vMeshColor;
+    cb.mView = XMMatrixTranspose(g_View);
+    cb.vMeshColor = g_vMeshColor;
+	cb.cameraposition.x = 0.0f;
+	cb.cameraposition.y = r;
+	cb.cameraposition.z = 2.0f;
+	cb.cameraposition.w = 1.0f;
     g_pImmediateContext->UpdateSubresource( g_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0 );
 
     //
     // Render the cube
     //
     g_pImmediateContext->VSSetShader( g_pVertexShader, nullptr, 0 );
-    g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pCBNeverChanges );
-    g_pImmediateContext->VSSetConstantBuffers( 1, 1, &g_pCBChangeOnResize );
-    g_pImmediateContext->VSSetConstantBuffers( 2, 1, &g_pCBChangesEveryFrame );
-    g_pImmediateContext->PSSetShader( g_pPixelShader, nullptr, 0 );
-    g_pImmediateContext->PSSetConstantBuffers( 2, 1, &g_pCBChangesEveryFrame );
-    g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV1Tex );
-	g_pImmediateContext->PSSetShaderResources(1, 1, &g_pTextureRV2Tex);
-    g_pImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
+    g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pCBChangeOnResize );
+    g_pImmediateContext->VSSetConstantBuffers( 1, 1, &g_pCBChangesEveryFrame );
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+
+
+	g_pImmediateContext->PSSetShaderResources(0, 1, &g_pWallTexture);
+	g_pImmediateContext->PSSetShaderResources(1, 1, &g_pBadWallTexture);
+	
+	
+	/*int texture = 0;
+	if (r < 5)
+		texture = 0;
+	if (r > 10)
+		texture = 1;
+	if (r >= 5 && r <= 10)
+		texture = 2;
+	if (texture == 0) {
+		g_pImmediateContext->PSSetShaderResources(0, 1, &g_pWallTexture);
+		g_pImmediateContext->PSSetShaderResources(1, 1, &g_pWallTexture);
+	}
+	if (texture == 1) {
+		g_pImmediateContext->PSSetShaderResources(0, 1, &g_pBadWallTexture);
+		g_pImmediateContext->PSSetShaderResources(1, 1, &g_pBadWallTexture);
+	}
+	if (texture == 2) {
+		g_pImmediateContext->PSSetShaderResources(0, 1, &g_pWallTexture);
+		g_pImmediateContext->PSSetShaderResources(1, 1, &g_pBadWallTexture);
+	}*/
+    g_pImmediateContext->PSSetSamplers(0, 1, &g_pSamplerLinear);
+    
+
     g_pImmediateContext->DrawIndexed( 36, 0, 0 );
 
     //
