@@ -1,0 +1,19 @@
+[17:11:37] Requiring external module babel-register
+hash
+nogit
+status
+nogit
+git date
+nogit
+VERSION
+0.0.7+nogit.nogit
+[17:11:39] Med3web - Dicom 2D/3D Web viewer v0.0.7+nogit.nogit Copyright 2019 EPAM Systems
+[17:11:39] Using gulpfile D:\projects\med3web_new\gulpfile.babel.js
+[17:11:39] Starting 'lint:js'...
+[17:11:43] 
+D:\projects\med3web_new\lib\scripts\graphics3d\volumeFilter3d.js
+  485:23  error  Missing semicolon  semi
+
+✖ 1 problem (1 error, 0 warnings)
+  1 error, 0 warnings potentially fixable with the `--fix` option.
+
